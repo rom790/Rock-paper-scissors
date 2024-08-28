@@ -20,8 +20,6 @@ var moves = map[string]string{
 	"scissors": "paper",
 }
 
-// fmt.Print()
-
 func checkSpecialCommand(motion string) bool {
 	return specialCommands[motion] != 0
 }
@@ -77,11 +75,22 @@ func checkInput(userMotion *string) {
 	}
 }
 
+func printHello() {
+	fmt.Println("Hello, this is rock paper scissors")
+	fmt.Printf("there are %d special commands: ", len(specialCommands))
+	for key, _ := range specialCommands {
+		fmt.Printf("%v ", key)
+	}
+	fmt.Println("\nYou have 3 basic motions: {paper}, {scissors} and {rock}")
+	fmt.Println("Write your motion:")
+}
+
 func main() {
+	printHello()
 	end := false
 	gameMod := 0
-
 	userMotion := ""
+
 	for {
 		botMotion := createBotMotion()
 
@@ -99,14 +108,12 @@ func main() {
 				fmt.Println("Game stopped")
 				os.Exit(0)
 			case 2:
-				fmt.Println("game mod changed")
 				gameMod = 1
-				continue
 			case 3:
-				fmt.Println("game mod changed")
 				gameMod = 0
-				continue
 			}
+			fmt.Println("game mod changed")
+			continue
 		}
 
 		end = compareMotions(userMotion, botMotion)
