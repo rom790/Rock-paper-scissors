@@ -84,16 +84,13 @@ func main() {
 	userMotion := ""
 	for {
 		botMotion := createBotMotion()
-		if gameMod == 0 {
-			userMotion, _ = reading()
-			checkInput(&userMotion)
-		}
 
-		if gameMod == 1 {
+		switch gameMod {
+		case 1:
 			fmt.Printf("bot - [%s]\n", botMotion)
-			userMotion, _ = reading()
-			checkInput(&userMotion)
 		}
+		userMotion, _ = reading()
+		checkInput(&userMotion)
 
 		if checkSpecialCommand(userMotion) {
 
