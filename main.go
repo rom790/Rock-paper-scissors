@@ -2,128 +2,79 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	// "fmt"
+	"go_l2/game"
+	"log"
 	"os"
 	"strings"
-	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var specialCommands = map[string]int{
-	"stop":            1,
-	"checkBotMotions": 2,
-	"hideBotMotions":  3,
-}
+// func sendMessage(text string, bot *tgbotapi.BotAPI, chatID int64){
+// 	msg := tgbotapi.NewMessage(chatID, text)
+// 	bot.Send(msg)
+// }
 
-var moves = map[string]string{
-	"paper":    "rock",
-	"rock":     "scissors",
-	"scissors": "paper",
-}
+// const (
+// 	Win = iota
+// 	Lose
+// 	Draw
+// 	Unknown
+// )
 
-func checkSpecialCommand(motion string) bool {
-	return specialCommands[motion] != 0
-}
+func processResults(g game.GameResult) string {
 
-func checkMotion(motion string) bool {
-	motion = strings.ToLower(motion)
+	var msg string
 
-	return (motion == "rock" || motion == "paper" || motion == "scissors")
-
-}
-
-func reading() (string, error) {
-	var motion string
-
-	_, err := fmt.Scan(&motion)
-
-	if err != nil {
-		return "", fmt.Errorf("can't reading motion: %w", err)
+	if g.Status == game.Win {
+		msg = "!You win!"
+	} else if g.Status == game.Lose {
+		msg = "Oops, you lose"
+	} else if g.Status == game.Draw {
+		msg = "It is draw, try again"
 	}
 
-	return motion, nil
+	msg += fmt.Sprintf(" || Your motion - [%s]  Bot motion - [%s]", g.UserMotion, g.BotMotion)
 
-}
-
-func createBotMotion() string {
-	motions := []string{"paper", "scissors", "rock"}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	randomIndex := random.Intn(3)
-
-	return motions[randomIndex]
-
-}
-
-func compareMotions(userMotion, botMotion string) bool {
-	end := false
-	if userMotion == botMotion {
-		fmt.Print("Oops, it is draw")
-	} else if moves[userMotion] == botMotion {
-		fmt.Print("!!!You win!!!")
-		end = true
-	} else {
-		fmt.Print("Oh no, you lose :(")
-	}
-	return end
-}
-
-func checkInput(userMotion *string) {
-	for !checkMotion(*userMotion) && !checkSpecialCommand(*userMotion) {
-		fmt.Println("Please, write correct item: paper, rock or scissors")
-		*userMotion, _ = reading()
-	}
-}
-
-func printHello() {
-	fmt.Println("Hello, this is rock paper scissors")
-	fmt.Printf("there are %d special commands: ", len(specialCommands))
-	for key, _ := range specialCommands {
-		fmt.Printf("%v ", key)
-	}
-	fmt.Println("\nYou have 3 basic motions: {paper}, {scissors} and {rock}")
-	fmt.Println("Write your motion:")
+	return msg
 }
 
 func main() {
-	printHello()
-	end := false
-	gameMod := 0
-	userMotion := ""
 
-	for {
-		botMotion := createBotMotion()
+	newGame := game.InitResults()
+	token := os.Getenv("TelegramBotToken")
 
-		switch gameMod {
-		case 1:
-			fmt.Printf("bot - [%s]\n", botMotion)
-		}
-		userMotion, _ = reading()
-		checkInput(&userMotion)
+	if token == "" {
+		log.Fatal("TELEGRAM_BOT_TOKEN not set")
+	}
 
-		if checkSpecialCommand(userMotion) {
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		log.Panic(err)
+	}
 
-			switch specialCommands[userMotion] {
-			case 1:
-				fmt.Println("Game stopped")
-				os.Exit(0)
-			case 2:
-				gameMod = 1
-			case 3:
-				gameMod = 0
-			}
-			fmt.Println("game mod changed")
-			continue
-		}
+	channel := tgbotapi.NewUpdate(0)
+	channel.Timeout = 60
 
-		end = compareMotions(userMotion, botMotion)
+	updates := bot.GetUpdatesChan(channel)
 
-		fmt.Printf(" | You - [%s], Bot - [%s]\n", userMotion, botMotion)
-		if !end {
-			fmt.Println("Try again")
+	for update := range updates {
+
+		userText := strings.ToLower(update.Message.Text)
+
+		var msg tgbotapi.MessageConfig
+
+		newGame.GetResults(userText)
+
+		if newGame.Status == game.Unknown {
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, newGame.ErrorMsg)
 		} else {
-			break
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, processResults(*newGame))
 		}
+
+		bot.Send(msg)
+
 	}
 
 }
