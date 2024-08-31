@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	// "fmt"
 	"go_l2/game"
 	"log"
 	"os"
@@ -11,17 +10,17 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// func sendMessage(text string, bot *tgbotapi.BotAPI, chatID int64){
-// 	msg := tgbotapi.NewMessage(chatID, text)
-// 	bot.Send(msg)
-// }
+func printHello() string {
+	msg := "Hello, this is rock paper scissors"
+	// fmt.Printf("there are %d special commands: ", len(specialCommands))
+	// for key := range specialCommands {
+	// 	fmt.Printf("%v ", key)
+	// }
+	msg += "\nYou have 3 basic motions: {paper}, {scissors} and {rock}"
+	msg += "Write your motion:"
 
-// const (
-// 	Win = iota
-// 	Lose
-// 	Draw
-// 	Unknown
-// )
+	return msg
+}
 
 func processResults(g game.GameResult) string {
 
@@ -61,9 +60,17 @@ func main() {
 
 	for update := range updates {
 
-		userText := strings.ToLower(update.Message.Text)
+		userCommand := update.Message.Command()
 
 		var msg tgbotapi.MessageConfig
+
+		if userCommand == "start" {
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, printHello())
+			bot.Send(msg)
+			continue
+		}
+
+		userText := strings.ToLower(update.Message.Text)
 
 		newGame.GetResults(userText)
 
